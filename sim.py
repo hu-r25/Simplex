@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 
-# --- 1. إعدادات الصفحة والتنسيق البصري المتطور ---
+# --- 1. إعدادات الصفحة والتنسيق الاحترافي ---
 st.set_page_config(page_title="Simplex Solver Pro", layout="wide")
 
 st.markdown("""
@@ -10,29 +10,29 @@ st.markdown("""
     .stApp { background-color: #0d1117; color: #c9d1d9; }
     .main-header { font-size: 2.2rem; color: #58a6ff; font-weight: bold; text-align: center; margin-bottom: 20px; }
     
-    /* تنسيق خانات الإدخال */
+    /* تنظيف خانات الإدخال */
     button.step-up, button.step-down { display: none !important; }
     input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { -moz-appearance: textfield; text-align: center; font-size: 16px !important; }
 
-    /* تنسيق صندوق المعادلات ليكون مرتباً جداً */
-    .equation-box { 
+    /* تنسيق صندوق المعادلات النهائية */
+    .final-equation-box { 
         background-color: #161b22; 
-        padding: 15px; 
-        border-radius: 10px; 
-        border: 1px solid #30363d; 
-        margin: 10px 0;
-        direction: rtl; /* اتجاه الصندوق العام عربي */
-        text-align: right;
+        padding: 25px; 
+        border-radius: 15px; 
+        border: 2px solid #30363d; 
+        margin: 20px 0;
+        text-align: left;
     }
-    .math-text { 
-        direction: ltr; /* اتجاه المعادلة الرياضية إنجليزي */
-        display: inline-block;
-        font-family: monospace;
+    .math-line { 
+        font-family: 'Consolas', monospace;
         color: #ffcc00;
-        font-size: 1.1rem;
-        margin-right: 10px;
+        font-size: 1.2rem;
+        margin-bottom: 10px;
+        display: block;
+        direction: ltr;
     }
+    .math-label { color: #58a6ff; font-weight: bold; margin-right: 15px; direction: rtl; display: inline-block; }
     
     .pivot-bar { background-color: #1f2937; padding: 10px; border-radius: 8px; border-left: 5px solid #ffcc00; color: #ffcc00; margin: 10px 0; font-weight: bold; }
     .stTable { width: 100%; border: 1px solid #30363d !important; }
@@ -79,24 +79,27 @@ with c_const:
         constraints_matrix.append(row)
 
 if st.button("🚀 بدأ التحليل الرياضي الشامل", use_container_width=True):
-    # --- الصيغة القياسية (هنا تم حل مشكلة الترتيب في الصورة) ---
-    st.subheader("1️⃣ تحويل القيود إلى معادلات (Standard Form)")
+    # --- الصيغة القياسية الكاملة ---
+    st.subheader("1️⃣ الصيغة القياسية النهائية (Standard Form)")
     s_vars = [f"S{i+1}" for i in range(n_const)]
     col_names = [f"X{i+1}" for i in range(n_vars)] + s_vars
     cj_full = np.concatenate([obj_coeffs, [0.0]*n_const])
     
+    # بناء دالة الهدف النهائية
+    obj_final_text = " + ".join([f"{int(cj_full[idx])}{col_names[idx]}" for idx in range(len(col_names))])
+    
+    # عرض كل شيء في صندوق واحد مرتب
+    html_content = "<div class='final-equation-box'>"
+    html_content += f"<div class='math-line'><span class='math-label'>دالة الهدف:</span> Max Z = {obj_final_text}</div><br>"
+    html_content += "<span class='math-label' style='display:block; margin-bottom:10px;'>القيود المحولة:</span>"
+    
     for i in range(n_const):
-        # بناء نص المعادلة الرياضية بشكل منفصل لضمان الترتيب
         eq_text = " + ".join([f"{int(constraints_matrix[i][j])}X{j+1}" for j in range(n_vars)])
         eq_text += f" + 1{s_vars[i]} = {int(rhs_values[i])}"
-        
-        # عرض المعادلة باستخدام HTML مخصص لمنع التداخل
-        st.markdown(f"""
-        <div class='equation-box'>
-            <span>المعادلة {i+1} : </span>
-            <span class='math-text'>{eq_text}</span>
-        </div>
-        """, unsafe_allow_html=True)
+        html_content += f"<div class='math-line' style='margin-left:20px;'>المعادلة {i+1} : {eq_text}</div>"
+    
+    html_content += "</div>"
+    st.markdown(html_content, unsafe_allow_html=True)
 
     # --- تهيئة المصفوفة والحل ---
     matrix = np.hstack([constraints_matrix, np.eye(n_const)])
