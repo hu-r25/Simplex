@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 
-# --- 1. إعدادات التصميم (ترتيب خاص للنصوص والعمليات) ---
+# --- 1. إعدادات التصميم (ترتيب احترافي متوافق مع الجوال) ---
 st.set_page_config(page_title="Simplex Master Pro", layout="wide")
 
 st.markdown("""
@@ -20,19 +20,21 @@ st.markdown("""
 
     .calc-container { 
         background-color: #161b22; border: 1px solid #30363d; border-right: 5px solid #58a6ff; 
-        padding: 20px; border-radius: 12px; margin: 20px 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        padding: 20px; border-radius: 12px; margin: 20px 0; font-family: 'Segoe UI', sans-serif;
         overflow-x: auto;
     }
     
-    /* تنسيق الرسائل التوضيحية داخل حاوية القيود */
     .info-msg { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; font-weight: bold; font-size: 1.05rem; }
     .bulb-icon { color: #f1c40f; font-size: 1.3rem; }
     .warn-icon { color: #f85149; font-size: 1.3rem; }
     
     .math-row { 
         color: #ffcc00; font-family: 'Consolas', monospace; font-size: 1.1rem; font-weight: bold;
-        margin: 8px 0; margin-left: 30px; direction: ltr; text-align: left;
+        margin: 8px 0; margin-left: 30px; direction: ltr; text-align: left; white-space: nowrap;
     }
+
+    .step-title { color: #58a6ff; font-weight: bold; margin-bottom: 10px; display: block; border-bottom: 1px solid #30363d; padding-bottom: 5px; }
+    .math-res { color: #3fb950; font-weight: bold; }
 
     .pivot-bar { 
         background-color: #161b22; border: 1px solid #f1c40f; padding: 12px; border-radius: 10px; 
@@ -40,6 +42,7 @@ st.markdown("""
     }
     .tag { background-color: #21262d; color: #58a6ff; padding: 2px 8px; border-radius: 5px; font-weight: bold; }
     .pivot-val { color: #3fb950; font-weight: bold; border: 1px solid #3fb950; padding: 0 5px; border-radius: 4px; }
+    
     .stTable { overflow-x: auto !important; display: block; width: 100%; border: 1px solid #30363d !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -87,10 +90,12 @@ if st.button("🚀 بدأ التحليل الحسابي الكامل", use_conta
     s_vars = [f"S{i+1}" for i in range(n_const)]
     col_names = [f"X{i+1}" for i in range(n_vars)] + s_vars
     is_min = (opt_type == "Minimize")
+    
+    # تحويل دالة الهدف
     cj_working = np.array(obj_coeffs + [0.0]*n_const)
     if is_min: cj_working *= -1
 
-    # --- تنظيم قسم الصيغة القياسية (مطابق للصورة) ---
+    # --- المرحلة التمهيدية: الصيغة القياسية (الترتيب المطلوب) ---
     st.markdown("### 1️⃣ المرحلة التمهيدية: الصيغة القياسية")
     standard_html = "<div class='calc-container'>"
     
@@ -108,6 +113,7 @@ if st.button("🚀 بدأ التحليل الحسابي الكامل", use_conta
         curr_row = np.array(constraints_matrix[i])
         curr_rhs = rhs_values[i]
         
+        # معالجة الناتج السالب
         if curr_rhs < 0:
             standard_html += f"""
             <div class='info-msg'>
@@ -128,7 +134,7 @@ if st.button("🚀 بدأ التحليل الحسابي الكامل", use_conta
     standard_html += "</div>"
     st.markdown(standard_html, unsafe_allow_html=True)
 
-    # تكملة محرك الحل
+    # تهيئة المصفوفة للحل
     matrix = np.hstack([np.array(final_matrix), np.eye(n_const)])
     xb = np.array(final_rhs, dtype=float)
     basis = s_vars.copy()
@@ -151,17 +157,31 @@ if st.button("🚀 بدأ التحليل الحسابي الكامل", use_conta
             table_rows.append([basis[i], fmt(cb[i]), fmt(xb[i])] + [fmt(matrix[i][j]) for j in range(len(col_names))] + [fmt(ratio) if ratio != np.inf else "-"] )
         
         table_rows.append(["Zj", "", fmt(current_z)] + [fmt(val) for val in zj] + ["-"])
-        table_rows.append(["Δj", "", ""] + [fmt(val) for val in deltas] + ["-"])
+        table_rows.append(["Δj (Zj-Cj)", "", ""] + [fmt(val) for val in deltas] + ["-"])
         st.table(pd.DataFrame(table_rows, columns=["الأساس", "CB", "XB"] + col_names + ["النسبة"]))
+
+        # --- الحسابات التفصيلية لكل جدول ---
+        calc_html = "<div class='calc-container'>"
+        calc_html += f"<span class='step-title'>📝 تفصيل حسابات الجدول {it}:</span>"
+        calc_html += "<b>• حساب Zj (حاصل ضرب CB في كل عمود):</b><br>"
+        for j in range(len(col_names)):
+            parts = [f"({fmt(cb[k])}×{fmt(matrix[k,j])})" for k in range(n_const)]
+            calc_html += f"<div class='math-row' style='color: #d29922;'>Zj({col_names[j]}) = {' + '.join(parts)} = <span class='math-res'>{fmt(zj[j])}</span></div>"
+        
+        calc_html += "<br><b>• حساب الدلتا Δj (التقييم الصافي):</b><br>"
+        for j in range(len(col_names)):
+            calc_html += f"<div class='math-row' style='color: #d29922;'>Δ({col_names[j]}) = {fmt(zj[j])}(Zj) - ({fmt(cj_working[j])})(Cj) = <span class='math-res'>{fmt(deltas[j])}</span></div>"
+        st.markdown(calc_html + "</div>", unsafe_allow_html=True)
 
         if is_optimal:
             final_res = -current_z if is_min else current_z
-            st.success(f"🏁 الحل الأمثل: Z = {fmt(final_res)}")
+            st.success(f"🏁 تم الوصول للحل الأمثل! القيمة النهائية للهدف Z = {fmt(final_res)}")
             break
             
         p_row_idx = np.argmin([xb[i]/matrix[i, p_col_idx] if matrix[i, p_col_idx] > 1e-9 else np.inf for i in range(n_const)])
         st.markdown(f"<div class='pivot-bar'>📥 الداخل: <span class='tag'>{col_names[p_col_idx]}</span> | 🎯 الارتكاز: <span class='pivot-val'>[{fmt(matrix[p_row_idx, p_col_idx])}]</span> | 📤 الخارج: <span class='tag'>{basis[p_row_idx]}</span></div>", unsafe_allow_html=True)
 
+        # تحديث المصفوفة
         pivot_val = matrix[p_row_idx, p_col_idx]
         matrix[p_row_idx] /= pivot_val
         xb[p_row_idx] /= pivot_val
