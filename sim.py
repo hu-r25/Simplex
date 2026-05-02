@@ -7,10 +7,13 @@ st.set_page_config(page_title="Simplex Solver Pro", layout="wide")
 
 st.markdown("""
     <style>
-    .stApp { background-color: #0d1117; color: #e6edf3; font-family: 'Segoe UI', sans-serif; }
+    /* التنسيق العام للموقع */
+    .stApp { background-color: #0d1117; color: #e6edf3; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    
+    /* العناوين */
     .main-header { font-size: 2.8rem; color: #58a6ff; font-weight: bold; text-align: center; margin: 20px 0; border-bottom: 2px solid #30363d; padding-bottom: 10px; }
     
-    /* حاوية الحسابات التفصيلية (ضرب وجمع وطرح) */
+    /* حاوية العمليات الحسابية التفصيلية */
     .calc-container { 
         background-color: #161b22; 
         border: 1px solid #30363d; 
@@ -18,43 +21,50 @@ st.markdown("""
         padding: 25px; 
         border-radius: 12px; 
         margin: 20px 0; 
-        font-family: 'Consolas', monospace; 
-        line-height: 1.8;
+        font-family: 'Consolas', 'Courier New', monospace; 
+        line-height: 2;
     }
-    .math-title { color: #58a6ff; font-weight: bold; font-size: 1.2rem; display: block; margin-bottom: 15px; border-bottom: 1px solid #30363d; padding-bottom: 5px; }
-    .math-row { color: #d29922; margin-left: 20px; direction: ltr; text-align: left; }
-    .math-res { color: #3fb950; font-weight: bold; }
+    .math-section-title { color: #58a6ff; font-weight: bold; font-size: 1.25rem; display: block; margin-bottom: 15px; border-bottom: 1px solid #30363d; padding-bottom: 5px; }
+    .math-row { color: #d29922; margin-left: 20px; direction: ltr; text-align: left; font-size: 1.1rem; }
+    .math-res { color: #3fb950; font-weight: bold; border-bottom: 1px dashed #3fb950; }
+    .sub-step { color: #8b949e; font-size: 0.95rem; margin-left: 40px; font-style: italic; }
 
     /* شريط معلومات الارتكاز */
     .pivot-bar { 
         background: linear-gradient(90deg, #1f2937 0%, #0d1117 100%); 
         border: 1px solid #ffcc00; padding: 15px; border-radius: 10px; text-align: center; margin: 30px 0;
     }
-    .tag { background-color: #21262d; color: #58a6ff; padding: 4px 12px; border-radius: 6px; font-weight: bold; }
+    .tag { background-color: #21262d; color: #58a6ff; padding: 4px 15px; border-radius: 6px; font-weight: bold; border: 1px solid #30363d; }
     
+    /* تنسيق الجداول */
     .stTable { width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid #30363d !important; }
-    input[type=number] { text-align: center; }
+    thead th { background-color: #161b22 !important; color: #58a6ff !important; text-align: center !important; font-size: 1.1rem !important; }
+    tbody td { text-align: center !important; font-size: 1rem !important; }
+
+    /* إخفاء أسهم الأرقام */
+    input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type=number] { -moz-appearance: textfield; text-align: center; border-radius: 8px !important; }
     </style>
     """, unsafe_allow_html=True)
 
-st.markdown("<div class='main-header'>📈 المحلل الحسابي لجدولة السمبلكس</div>", unsafe_allow_html=True)
+st.markdown("<div class='main-header'>📊 المحلل الحسابي لجدولة السمبلكس</div>", unsafe_allow_html=True)
 
 # --- 2. مدخلات المسألة ---
-col_cfg1, col_cfg2 = st.columns(2)
-with col_cfg1:
+col_setup1, col_setup2 = st.columns(2)
+with col_setup1:
     n_vars = st.selectbox("عدد متغيرات القرار (X):", [2, 3, 4], index=1)
-with col_cfg2:
-    n_const = st.selectbox("عدد القيود الهيكلية:", [2, 3, 4], index=1)
+with col_setup2:
+    n_const = st.selectbox("عدد القيود الهيكلية (≤):", [2, 3, 4], index=1)
 
 st.divider()
 
 c_obj, c_const = st.columns([1, 1.4], gap="large")
 with c_obj:
     st.subheader("🎯 دالة الهدف")
-    obj_coeffs = [float(st.number_input(f"معامل X{i+1}", value=0, step=1, format="%d", key=f"obj_{i}")) for i in range(n_vars)]
+    obj_coeffs = [float(st.number_input(f"X{i+1}", value=0, step=1, format="%d", key=f"obj_{i}")) for i in range(n_vars)]
 
 with c_const:
-    st.subheader("⛓️ القيود (≤)")
+    st.subheader("⛓️ القيود")
     constraints_matrix = []
     rhs_values = []
     for i in range(n_const):
@@ -63,8 +73,8 @@ with c_const:
         rhs_values.append(float(r_cols[-1].number_input(f"RHS {i+1}", value=0, step=1, format="%d", key=f"rhs_{i}", label_visibility="collapsed")))
         constraints_matrix.append(row)
 
-# --- 3. محرك الحل والعرض التفصيلي ---
-if st.button("🚀 بدأ التحليل الحسابي التفصيلي", use_container_width=True):
+# --- 3. محرك الحل والعرض ---
+if st.button("🚀 بدأ التحليل الرياضي التفصيلي", use_container_width=True):
     s_vars = [f"S{i+1}" for i in range(n_const)]
     col_names = [f"X{i+1}" for i in range(n_vars)] + s_vars
     cj_full = np.array(obj_coeffs + [0.0]*n_const)
@@ -81,8 +91,10 @@ if st.button("🚀 بدأ التحليل الحسابي التفصيلي", use_c
         deltas = zj - cj_full
         current_z = np.dot(cb, xb)
 
+        # عرض صف Cj
         st.table(pd.DataFrame([cj_full.astype(int)], columns=col_names, index=["Cj"]))
 
+        # عرض الجدول الرئيسي
         p_col_idx = np.argmin(deltas)
         table_rows = []
         for i in range(n_const):
@@ -91,31 +103,32 @@ if st.button("🚀 بدأ التحليل الحسابي التفصيلي", use_c
         
         table_rows.append(["Zj", "", f"{current_z:.2f}"] + [f"{val:.2f}" for val in zj] + ["-"])
         table_rows.append(["Δj (Zj-Cj)", "", ""] + [f"{val:.2f}" for val in deltas] + ["-"])
-        st.table(pd.DataFrame(table_rows, columns=["Basic Variable", "CB", "XB"] + col_names + ["Ratio"]))
+        st.table(pd.DataFrame(table_rows, columns=["Basic Variable", "CB", "XB"] + col_names + ["Min. Ratio"]))
 
-        # --- تفاصيل العمليات الحسابية الكاملة (مطابقة للصور المطلوبة) ---
+        # --- قسم التفاصيل الحسابية (الترتيب الأكاديمي) ---
         calc_html = "<div class='calc-container'>"
-        calc_html += f"<span class='math-title'>📝 التفاصيل الحسابية الكاملة للجدول رقم {it}:</span>"
+        calc_html += f"<span class='math-section-title'>📝 العمليات الحسابية التفصيلية للجدول رقم {it}:</span>"
         
-        # 1. تفصيل حساب Zj (ضرب وجمع)
-        calc_html += "<b>• أولاً: حساب صف Zj (ضرب CB في قيم الأعمدة):</b><br>"
+        # 1. تفصيل حساب Zj
+        calc_html += "<b>1. حساب قيم Zj (حاصل ضرب CB في كل عمود):</b><br>"
         for j in range(len(col_names)):
             parts = [f"({cb[i]} × {matrix[i,j]:.2f})" for i in range(n_const)]
-            calc_html += f"<p class='math-row'>Zj({col_names[j]}) = {' + '.join(parts)} = <span class='math-res'>{zj[j]:.2f}</span></p>"
+            calc_html += f"<p class='math-row'>• Zj({col_names[j]}) = {' + '.join(parts)} = <span class='math-res'>{zj[j]:.2f}</span></p>"
         
-        # 2. تفصيل حساب Δj (العملية الحسابية الكاملة)
-        calc_html += "<br><b>• ثانياً: حساب صافي التقييم Δj (العملية الحسابية الكاملة):</b><br>"
+        # 2. تفصيل حساب Δj (العملية الكاملة: ضرب + جمع + طرح)
+        calc_html += "<br><b>2. حساب الدلتا Δj (صافي التقييم الحسابي):</b><br>"
         for j in range(len(col_names)):
-            # عرض الطرح التفصيلي كما في image_9831d0.png
-            calc_html += f"<p class='math-row'>Δ({col_names[j]}) = {zj[j]:.2f} (Zj) - {cj_full[j]:.2f} (Cj) = <span class='math-res'>{deltas[j]:.2f}</span></p>"
+            # الخطوة الكاملة: (الناتج من Zj) - (القيمة من Cj)
+            calc_html += f"<p class='math-row'>• Δ({col_names[j]}) = {zj[j]:.2f} (Zj) - {cj_full[j]:.2f} (Cj) = <span class='math-res'>{deltas[j]:.2f}</span></p>"
         
         calc_html += "</div>"
         st.markdown(calc_html, unsafe_allow_html=True)
 
         if np.all(deltas >= -1e-9):
-            st.success(f"🏁 تم الوصول للحل الأمثل بنجاح! القيمة النهائية Z = {current_z:.2f}")
+            st.success(f"🏁 تم الوصول للحل الأمثل بنجاح! القيمة النهائية لدالة الهدف: Z = {current_z:.2f}")
             break
             
+        # معلومات الارتكاز
         p_row_idx = np.argmin([xb[i]/matrix[i, p_col_idx] if matrix[i, p_col_idx] > 0 else np.inf for i in range(n_const)])
         st.markdown(f"""
             <div class='pivot-bar'>
@@ -126,7 +139,7 @@ if st.button("🚀 بدأ التحليل الحسابي التفصيلي", use_c
         """, unsafe_allow_html=True)
         st.divider()
 
-        # تحديث المصفوفة
+        # تحديث المصفوفة (Gauss-Jordan)
         pivot_val = matrix[p_row_idx, p_col_idx]
         matrix[p_row_idx] /= pivot_val
         xb[p_row_idx] /= pivot_val
