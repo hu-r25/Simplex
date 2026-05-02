@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 
-# --- 1. إعدادات الصفحة والتنسيق الاحترافي ---
+# --- 1. إعدادات الصفحة والتصميم ---
 st.set_page_config(page_title="Simplex Solver Pro", layout="wide")
 
 st.markdown("""
@@ -15,7 +15,7 @@ st.markdown("""
     input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { -moz-appearance: textfield; text-align: center; font-size: 16px !important; }
 
-    /* تنسيق صندوق المعادلات النهائية */
+    /* صندوق المعادلات القياسية */
     .final-equation-box { 
         background-color: #161b22; 
         padding: 25px; 
@@ -34,7 +34,16 @@ st.markdown("""
     }
     .math-label { color: #58a6ff; font-weight: bold; margin-right: 15px; direction: rtl; display: inline-block; }
     
-    .pivot-bar { background-color: #1f2937; padding: 10px; border-radius: 8px; border-left: 5px solid #ffcc00; color: #ffcc00; margin: 10px 0; font-weight: bold; }
+    /* تصميم شريط الارتكاز المرتب */
+    .pivot-container {
+        background-color: #1f2937;
+        border-radius: 10px;
+        border-right: 5px solid #ffcc00;
+        padding: 15px;
+        margin: 15px 0;
+    }
+    .pivot-item { text-align: center; border-left: 1px solid #30363d; }
+    
     .stTable { width: 100%; border: 1px solid #30363d !important; }
     </style>
     """, unsafe_allow_html=True)
@@ -79,29 +88,24 @@ with c_const:
         constraints_matrix.append(row)
 
 if st.button("🚀 بدأ التحليل الرياضي الشامل", use_container_width=True):
-    # --- الصيغة القياسية الكاملة ---
+    # --- الصيغة القياسية ---
     st.subheader("1️⃣ الصيغة القياسية النهائية (Standard Form)")
     s_vars = [f"S{i+1}" for i in range(n_const)]
     col_names = [f"X{i+1}" for i in range(n_vars)] + s_vars
     cj_full = np.concatenate([obj_coeffs, [0.0]*n_const])
     
-    # بناء دالة الهدف النهائية
     obj_final_text = " + ".join([f"{int(cj_full[idx])}{col_names[idx]}" for idx in range(len(col_names))])
     
-    # عرض كل شيء في صندوق واحد مرتب
     html_content = "<div class='final-equation-box'>"
     html_content += f"<div class='math-line'><span class='math-label'>دالة الهدف:</span> Max Z = {obj_final_text}</div><br>"
     html_content += "<span class='math-label' style='display:block; margin-bottom:10px;'>القيود المحولة:</span>"
-    
     for i in range(n_const):
         eq_text = " + ".join([f"{int(constraints_matrix[i][j])}X{j+1}" for j in range(n_vars)])
         eq_text += f" + 1{s_vars[i]} = {int(rhs_values[i])}"
         html_content += f"<div class='math-line' style='margin-left:20px;'>المعادلة {i+1} : {eq_text}</div>"
-    
     html_content += "</div>"
     st.markdown(html_content, unsafe_allow_html=True)
 
-    # --- تهيئة المصفوفة والحل ---
     matrix = np.hstack([constraints_matrix, np.eye(n_const)])
     xb = np.array(rhs_values, dtype=float)
     basis = [f"S{i+1}" for i in range(n_const)]
@@ -109,14 +113,13 @@ if st.button("🚀 بدأ التحليل الرياضي الشامل", use_conta
 
     for it in range(1, 8):
         st.markdown(f"### 📍 جدول السمبلكس - التكرار رقم ({it})")
-        
         zj = np.array([np.dot(cb, matrix[:, j]) for j in range(len(cj_full))])
         deltas = zj - cj_full
         current_z = np.dot(cb, xb)
 
-        # عرض Cj
+        # عرض Cj فوق المتغيرات
         cj_display = pd.DataFrame([cj_full.astype(int)], columns=col_names, index=["Cj"])
-        st.write("**توزيع معاملات Cj فوق المتغيرات:**")
+        st.write("**معاملات Cj:**")
         st.table(cj_display)
 
         # جدول البيانات الرئيسي
@@ -130,7 +133,7 @@ if st.button("🚀 بدأ التحليل الرياضي الشامل", use_conta
         df_main = pd.DataFrame(main_table_data, columns=["Basis", "CB", "XB"] + col_names + ["Ratio"])
         st.table(df_main)
 
-        # صفوف Zj و Zj-Cj الأفقية
+        # صفوف Zj و Zj-Cj
         footer_data = [
             ["Zj", "", f"{current_z:.2f}"] + [f"{val:.2f}" for val in zj] + [""],
             ["Zj - Cj", "", ""] + [f"{val:.2f}" for val in deltas] + [""]
@@ -142,8 +145,16 @@ if st.button("🚀 بدأ التحليل الرياضي الشامل", use_conta
             st.success(f"🏁 تم الوصول للحل الأمثل: Z = {current_z:.2f}")
             break
             
+        # --- ترتيب معلومات الارتكاز (الذي طلبته) ---
         p_row_idx = np.argmin([xb[i]/matrix[i, p_col_idx] if matrix[i, p_col_idx] > 0 else np.inf for i in range(n_const)])
-        st.markdown(f"<div class='pivot-bar'>🎯 الارتكاز: {matrix[p_row_idx, p_col_idx]:.2f} | ⬅️ الداخل: {col_names[p_col_idx]} | ➡️ الخارج: {basis[p_row_idx]}</div>", unsafe_allow_html=True)
+        
+        st.markdown("<div class='pivot-container'>", unsafe_allow_html=True)
+        pv_col1, pv_col2, pv_col3, pv_col4 = st.columns([1, 1.5, 1.5, 1.5])
+        with pv_col1: st.markdown("🎯 **الارتكاز**")
+        with pv_col2: st.warning(f"{matrix[p_row_idx, p_col_idx]:.2f}")
+        with pv_col3: st.markdown(f"📥 **الداخل:** {col_names[p_col_idx]}")
+        with pv_col4: st.markdown(f"📤 **الخارج:** {basis[p_row_idx]}")
+        st.markdown("</div>", unsafe_allow_html=True)
         st.divider()
 
         # تحديث المصفوفة
