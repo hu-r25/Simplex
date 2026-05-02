@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 # --- 1. إعدادات التصميم (محسن للجوال وبسيط بصرياً) ---
-st.set_page_config(page_title="Simplex Coach Pro", layout="wide")
+st.set_page_config(page_title="Simplex", layout="wide")
 
 st.markdown("""
     <style>
@@ -50,8 +50,8 @@ def fmt(num):
     if num == int(num): return str(int(num))
     return f"{num:.2f}".rstrip('0').rstrip('.')
 
-st.markdown("<div class='main-header'>📈 محلل السمبلكس التعليمي</div>", unsafe_allow_html=True)
-
+st.markdown("<div class='main-header'>📈 Simplex Solve</div>", unsafe_allow_html=True)
+<h3>"By Hussein.R"<\h3>
 # --- 2. مدخلات المسألة ---
 with st.expander("⚙️ إعدادات المتغيرات والقيود", expanded=True):
     c1, c2 = st.columns(2)
