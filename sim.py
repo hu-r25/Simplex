@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 # --- 1. إعدادات التصميم المتكاملة للجوال ---
-st.set_page_config(page_title="Simplex Master Pro", layout="wide")
+st.set_page_config(page_title="Simplex", layout="wide")
 
 st.markdown("""
     <style>
@@ -43,7 +43,7 @@ def fmt(num):
     if abs(num - round(num)) < 1e-9: return str(int(round(num)))
     return f"{num:.2f}".rstrip('0').rstrip('.')
 
-st.markdown("<div class='main-header'>📊 المحلل الحسابي الشامل للسمبلكس</div>", unsafe_allow_html=True)
+st.markdown("<div class='main-header'>📊 Simplex Solver </div>", unsafe_allow_html=True)
 
 # --- 2. مدخلات المسألة ---
 with st.expander("⚙️ إعدادات المسألة الأساسية", expanded=True):
