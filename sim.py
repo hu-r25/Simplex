@@ -129,16 +129,16 @@ if st.button("🚀 بدأ التحليل الرياضي الشامل", use_conta
         table_rows.append(["Δj (Zj-Cj)", "", ""] + [f"{val:.2f}" for val in deltas] + ["-"])
         st.table(pd.DataFrame(table_rows, columns=["Basis", "CB", "XB"] + col_names + ["Ratio"]))
 
-        # --- التفاصيل المملة (الحسابات) ---
+        # --- التفاصيل الحسابية (Zj والدلتا) مطابقة للصورة image_a225e5.png ---
         calc_html = "<div class='calc-container'>"
         calc_html += f"<span class='math-title'>🧾 تفاصيل حسابات صف Zj للجدول {it}:</span>"
         for j in range(len(col_names)):
             steps = " + ".join([f"({cb[i]} × {matrix[i,j]:.2f})" for i in range(n_const)])
             calc_html += f"<p dir='ltr' class='math-row'>• Zj({col_names[j]}): {steps} = <span class='math-res'>{zj[j]:.2f}</span></p>"
         
-        calc_html += f"<br><span class='math-title'>📊 خطوات حل الدلتا (صافي التقييم Zj - Cj):</span>"
+        calc_html += f"<br><span class='math-title'>📊 خطوات حساب الدلتا Δj (صافي التقييم):</span>"
         for j in range(len(col_names)):
-            # تفصيل عملية الطرح لكل دلتا
+            # تفصيل عملية الطرح طبقاً للصورة image_a225e5.png
             calc_html += f"<p dir='ltr' class='math-row'>• Δ({col_names[j]}) = {zj[j]:.2f} (Zj) - {cj_full[j]:.2f} (Cj) = <span class='math-res'>{deltas[j]:.2f}</span></p>"
         calc_html += "</div>"
         st.markdown(calc_html, unsafe_allow_html=True)
