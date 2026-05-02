@@ -86,7 +86,7 @@ for i in range(n_const):
     rhs_values.append(rhs)
 
 # --- 3. محرك الحل ---
-if st.button("🚀 بدأ التحليل والشرح للجوال", use_container_width=True):
+if st.button("🚀بدأ الحل", use_container_width=True):
     s_vars = [f"S{i+1}" for i in range(n_const)]
     col_names = [f"X{i+1}" for i in range(n_vars)] + s_vars
     cj_full = np.array(obj_coeffs + [0.0]*n_const)
