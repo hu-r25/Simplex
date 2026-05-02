@@ -134,7 +134,7 @@ if st.button("🚀 بدأ الحل", use_container_width=True):
             ratio = xb[i] / val_p if val_p > 1e-9 else np.inf
             table_rows.append([basis[i], fmt(cb[i]), fmt(xb[i])] + [fmt(matrix[i][j]) for j in range(len(col_names))] + [fmt(ratio) if ratio != np.inf else "-"] )
         
-        table_rows.append(["Zj", "", fmt(current_z)] + [fmt(val) for val in zj] + ["-"])
+        table_rows.append(["Z", "", fmt(current_z)] + [fmt(val) for val in zj] + ["-"])
         table_rows.append(["Δj", "", ""] + [fmt(val) for val in deltas] + ["-"])
         st.table(pd.DataFrame(table_rows, columns=["الأساس", "CB", "XB"] + col_names + ["النسبة"]))
 
