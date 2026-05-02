@@ -8,32 +8,38 @@ st.set_page_config(page_title="Simplex Solver Pro", layout="wide")
 st.markdown("""
     <style>
     .stApp { background-color: #0d1117; color: #e6edf3; font-family: 'Segoe UI', sans-serif; }
-    .main-header { font-size: 2.5rem; color: #58a6ff; text-align: center; margin-bottom: 20px; border-bottom: 2px solid #30363d; padding-bottom: 10px; }
+    .main-header { font-size: 2.8rem; color: #58a6ff; font-weight: bold; text-align: center; margin: 20px 0; border-bottom: 2px solid #30363d; padding-bottom: 10px; }
     
+    /* حاوية الحسابات التفصيلية (مطابقة لطلبك) */
     .calc-container { 
         background-color: #161b22; 
         border: 1px solid #30363d; 
         border-right: 6px solid #58a6ff; 
-        padding: 20px; 
+        padding: 25px; 
         border-radius: 12px; 
         margin: 20px 0; 
         font-family: 'Consolas', monospace; 
+        line-height: 1.8;
     }
-    .math-title { color: #58a6ff; font-weight: bold; font-size: 1.1rem; display: block; margin-bottom: 10px; }
+    .math-title { color: #58a6ff; font-weight: bold; font-size: 1.2rem; display: block; margin-bottom: 15px; border-bottom: 1px solid #30363d; padding-bottom: 5px; }
     .math-row { color: #d29922; margin-left: 20px; direction: ltr; text-align: left; }
     .math-res { color: #3fb950; font-weight: bold; }
-    .status-box { background-color: #0d1117; padding: 10px; border-radius: 8px; border: 1px dashed #7d8590; margin-bottom: 10px; }
+    .status-text { color: #8b949e; font-style: italic; margin-bottom: 10px; }
 
+    /* شريط معلومات الارتكاز */
     .pivot-bar { 
         background: linear-gradient(90deg, #1f2937 0%, #0d1117 100%); 
         border: 1px solid #ffcc00; padding: 15px; border-radius: 10px; text-align: center; margin: 30px 0;
     }
     .tag { background-color: #21262d; color: #58a6ff; padding: 4px 12px; border-radius: 6px; font-weight: bold; }
+    
+    /* تنسيق الجداول */
     .stTable { width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid #30363d !important; }
+    thead th { background-color: #161b22 !important; color: #58a6ff !important; text-align: center !important; }
     </style>
     """, unsafe_allow_html=True)
 
-st.markdown("<div class='main-header'>📈 محلل جداول السمبلكس الأكاديمي</div>", unsafe_allow_html=True)
+st.markdown("<div class='main-header'>📈 المحلل الحسابي لجدولة السمبلكس</div>", unsafe_allow_html=True)
 
 # --- 2. مدخلات المسألة ---
 col_cfg1, col_cfg2 = st.columns(2)
@@ -59,8 +65,8 @@ with c_const:
         rhs_values.append(float(r_cols[-1].number_input(f"RHS {i+1}", value=0, step=1, format="%d", key=f"rhs_{i}", label_visibility="collapsed")))
         constraints_matrix.append(row)
 
-# --- 3. محرك الحل ---
-if st.button("🚀 بدأ التحليل الرياضي الكامل", use_container_width=True):
+# --- 3. محرك الحل والعرض التفصيلي ---
+if st.button("🚀 بدأ التحليل الحسابي التفصيلي", use_container_width=True):
     s_vars = [f"S{i+1}" for i in range(n_const)]
     col_names = [f"X{i+1}" for i in range(n_vars)] + s_vars
     cj_full = np.array(obj_coeffs + [0.0]*n_const)
@@ -77,7 +83,7 @@ if st.button("🚀 بدأ التحليل الرياضي الكامل", use_conta
         deltas = zj - cj_full
         current_z = np.dot(cb, xb)
 
-        # عرض Cj العلوي
+        # عرض Cj
         st.table(pd.DataFrame([cj_full.astype(int)], columns=col_names, index=["Cj"]))
 
         p_col_idx = np.argmin(deltas)
@@ -86,43 +92,40 @@ if st.button("🚀 بدأ التحليل الرياضي الكامل", use_conta
             ratio = xb[i] / matrix[i, p_col_idx] if matrix[i, p_col_idx] > 0 else np.inf
             table_rows.append([basis[i], f"{cb[i]:.2f}", f"{xb[i]:.2f}"] + [f"{matrix[i][j]:.2f}" for j in range(len(col_names))] + [f"{ratio:.2f}" if ratio != np.inf else "-"] )
         
-        # إضافة صف الدلتا للجدول
-        delta_row = ["Δj", "", ""] + [f"{val:.2f}" for val in deltas] + [""]
-        table_rows.append(delta_row)
+        # دمج صفوف الحسابات النهائية في الجدول الأساسي (مطابقة لـ image_9831d0.png)
+        table_rows.append(["Zj", "", f"{current_z:.2f}"] + [f"{val:.2f}" for val in zj] + ["-"])
+        table_rows.append(["Δj (Zj-Cj)", "", ""] + [f"{val:.2f}" for val in deltas] + ["-"])
         
         st.table(pd.DataFrame(table_rows, columns=["Basic Variable", "CB", "XB"] + col_names + ["Min. Ratio"]))
 
-        # --- خطوات الدلتا التفصيلية (مطابقة للصورة image_a29660.png) ---
-        non_basis = [c for c in col_names if c not in basis]
-        zero_vars = " = ".join(non_basis) + " = 0"
-        
+        # --- تفاصيل الحل الحسابي "المملة" (مطابقة لـ image_a225e5.png و image_9831d0.png) ---
         calc_html = "<div class='calc-container'>"
-        calc_html += f"<div class='status-box'><b>حالة المتغيرات:</b> {zero_vars}</div>"
-        calc_html += f"<span class='math-title'>📝 حساب قيمة Z والدلتا (Δj):</span>"
         
-        # حساب Z و Z' (كما في الصورة)
-        calc_html += f"<p dir='ltr' class='math-row'>• Z' = {current_z:.2f} ⮕ Z = {-current_z:.2f}</p>"
-        
+        # حساب Zj التفصيلي
+        calc_html += f"<span class='math-title'>🧾 تفاصيل حساب قيم Zj (ضرب CB في قيم الأعمدة):</span>"
         for j in range(len(col_names)):
-            calc_html += f"<p dir='ltr' class='math-row'>• Δ({col_names[j]}) = {zj[j]:.2f} (Zj) - {cj_full[j]:.2f} (Cj) = <span class='math-res'>{deltas[j]:.2f}</span></p>"
+            parts = [f"({cb[i]} × {matrix[i,j]:.2f})" for i in range(n_const)]
+            calc_html += f"<p class='math-row'>• Zj({col_names[j]}) = {' + '.join(parts)} = <span class='math-res'>{zj[j]:.2f}</span></p>"
         
-        if np.all(deltas >= -1e-9):
-            calc_html += "<p class='math-res' style='margin-top:10px;'>✅ Δj ≥ 0 : تم الوصول للحل الأمثل.</p>"
-            calc_html += "</div>"
-            st.markdown(calc_html, unsafe_allow_html=True)
-            st.success(f"🏁 الحل النهائي: Z = {-current_z:.2f}")
-            break
+        # حساب Δj التفصيلي (مطابق تماماً لـ image_9831d0.png)
+        calc_html += f"<br><span class='math-title'>📊 حساب صافي التقييم Δj (Zj - Cj):</span>"
+        for j in range(len(col_names)):
+            calc_html += f"<p class='math-row'>• Δ({col_names[j]}) = {zj[j]:.2f} (Zj) - {cj_full[j]:.2f} (Cj) = <span class='math-res'>{deltas[j]:.2f}</span></p>"
         
         calc_html += "</div>"
         st.markdown(calc_html, unsafe_allow_html=True)
 
-        # تحديد الارتكاز
+        if np.all(deltas >= -1e-9):
+            st.success(f"🏁 تم الوصول للحل الأمثل بنجاح! Z = {current_z:.2f}")
+            break
+            
+        # معلومات الارتكاز المنسقة
         p_row_idx = np.argmin([xb[i]/matrix[i, p_col_idx] if matrix[i, p_col_idx] > 0 else np.inf for i in range(n_const)])
         st.markdown(f"""
             <div class='pivot-bar'>
-                📥 <b>المتغير الداخل:</b> <span class='tag'>{col_names[p_col_idx]}</span> (↑) | 
+                📥 <b>المتغير الداخل:</b> <span class='tag'>{col_names[p_col_idx]}</span> | 
                 🎯 <b>عنصر الارتكاز:</b> <span style='color:#3fb950; font-size:1.4rem; font-weight:bold;'>[{matrix[p_row_idx, p_col_idx]:.2f}]</span> | 
-                📤 <b>المتغير الخارج:</b> <span class='tag'>{basis[p_row_idx]}</span> (↓)
+                📤 <b>المتغير الخارج:</b> <span class='tag'>{basis[p_row_idx]}</span>
             </div>
         """, unsafe_allow_html=True)
         st.divider()
