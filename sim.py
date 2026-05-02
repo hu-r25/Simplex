@@ -35,6 +35,9 @@ st.markdown("""
         border: 1px solid #ffcc00; padding: 15px; border-radius: 10px; text-align: center; margin: 30px 0;
     }
     .tag { background-color: #21262d; color: #58a6ff; padding: 4px 12px; border-radius: 6px; font-weight: bold; }
+    
+    .stTable { width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid #30363d !important; }
+    input[type=number] { text-align: center; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -70,6 +73,7 @@ if st.button("🚀 بدأ التحليل الرياضي الشامل", use_conta
     col_names = [f"X{i+1}" for i in range(n_vars)] + s_vars
     cj_full = np.concatenate([obj_coeffs, [0.0]*n_const])
     
+    # تحويل البيانات الرياضية
     matrix = np.hstack([constraints_matrix, np.eye(n_const)])
     xb = np.array(rhs_values, dtype=float)
     basis = [f"S{i+1}" for i in range(n_const)]
@@ -82,8 +86,10 @@ if st.button("🚀 بدأ التحليل الرياضي الشامل", use_conta
         deltas = zj - cj_full
         current_z = np.dot(cb, xb)
 
+        # عرض صف Cj فوق الجدول
         st.table(pd.DataFrame([cj_full.astype(int)], columns=col_names, index=["Cj"]))
 
+        # بناء الجدول الموحد
         p_col_idx = np.argmin(deltas)
         table_rows = []
         for i in range(n_const):
@@ -94,10 +100,9 @@ if st.button("🚀 بدأ التحليل الرياضي الشامل", use_conta
         table_rows.append(["Δj (Zj-Cj)", "", ""] + [f"{val:.2f}" for val in deltas] + ["-"])
         st.table(pd.DataFrame(table_rows, columns=["Basis", "CB", "XB"] + col_names + ["Ratio"]))
 
-        # --- تفاصيل حسابات الدلتا (الطلب الجديد) ---
+        # --- تفاصيل الحسابات المملة (Zj و Delta) ---
         calc_html = "<div class='calc-container'>"
-        calc_html += f"<span class='math-title'>🧪 خطوات حساب صافي التقييم (Delta) للجدول {it}:</span>"
-        calc_html += "<p style='font-size:0.9rem; color:#8b949e;'>القانون: Δj = Zj - Cj (حيث Zj هو حاصل ضرب عمود CB في قيم العمود j)</p>"
+        calc_html += f"<span class='math-title'>🧪 خطوات حساب Zj وصافي التقييم (Delta) للجدول {it}:</span>"
         
         for j in range(len(col_names)):
             steps_zj = " + ".join([f"({cb[i]} × {matrix[i,j]:.2f})" for i in range(n_const)])
@@ -110,21 +115,23 @@ if st.button("🚀 بدأ التحليل الرياضي الشامل", use_conta
         calc_html += "</div>"
         st.markdown(calc_html, unsafe_allow_html=True)
 
+        # فحص شرط التوقف
         if np.all(deltas >= -1e-9):
-            st.success(f"🏁 تم الوصول للحل الأمثل! Z = {current_z:.2f}")
+            st.success(f"🏁 تم الوصول للحل الأمثل بنجاح! القيمة النهائية Z = {current_z:.2f}")
             break
             
+        # تحديد المتغير الداخل والخارج
         p_row_idx = np.argmin([xb[i]/matrix[i, p_col_idx] if matrix[i, p_col_idx] > 0 else np.inf for i in range(n_const)])
         st.markdown(f"""
             <div class='pivot-bar'>
-                📥 <b>المتغير الداخل:</b> <span class='tag'>{col_names[p_col_idx]}</span> (لأنه صاحب أقل قيمة Δ سالبة) | 
+                📥 <b>المتغير الداخل:</b> <span class='tag'>{col_names[p_col_idx]}</span> | 
                 🎯 <b>عنصر الارتكاز:</b> <span style='color:#3fb950; font-size:1.4rem; font-weight:bold;'>{matrix[p_row_idx, p_col_idx]:.2f}</span> | 
-                📤 <b>المتغير الخارج:</b> <span class='tag'>{basis[p_row_idx]}</span> (لأنه صاحب أقل Ratio موجب)
+                📤 <b>المتغير الخارج:</b> <span class='tag'>{basis[p_row_idx]}</span>
             </div>
         """, unsafe_allow_html=True)
         st.divider()
 
-        # تحديث المصفوفة
+        # تحديث المصفوفة (Gauss-Jordan)
         pivot_val = matrix[p_row_idx, p_col_idx]
         matrix[p_row_idx] /= pivot_val
         xb[p_row_idx] /= pivot_val
