@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 # --- 1. إعدادات التصميم المتجاوب مع الجوال (Mobile Optimized) ---
-st.set_page_config(page_title="Simplex Solver Mobile", layout="wide")
+st.set_page_config(page_title="Simplex Solver", layout="wide")
 
 st.markdown("""
     <style>
@@ -66,7 +66,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.markdown("<div class='main-header'>📈 محلل السمبلكس الذكي</div>", unsafe_allow_html=True)
+st.markdown("<div class='main-header'>📈 Simplex Solver</div>", unsafe_allow_html=True)
 
 # --- 2. مدخلات المسألة ---
 st.subheader("⚙️ إعدادات المسألة")
