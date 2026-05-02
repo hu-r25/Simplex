@@ -2,49 +2,49 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 
-# --- 1. إعدادات الصفحة والتصميم ---
+# --- 1. إعدادات الصفحة والتصميم الفني ---
 st.set_page_config(page_title="Simplex Solver Pro", layout="wide")
 
 st.markdown("""
     <style>
     .stApp { background-color: #0d1117; color: #c9d1d9; }
-    .main-header { font-size: 2.2rem; color: #58a6ff; font-weight: bold; text-align: center; margin-bottom: 20px; }
+    .main-header { font-size: 2.5rem; color: #58a6ff; font-weight: bold; text-align: center; margin-bottom: 25px; }
     
     /* تنظيف خانات الإدخال */
     button.step-up, button.step-down { display: none !important; }
     input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-    input[type=number] { -moz-appearance: textfield; text-align: center; font-size: 16px !important; }
+    input[type=number] { -moz-appearance: textfield; text-align: center; font-size: 18px !important; border-radius: 8px !important; }
 
     /* صندوق المعادلات القياسية */
-    .final-equation-box { 
+    .standard-form-box { 
         background-color: #161b22; 
         padding: 25px; 
         border-radius: 15px; 
         border: 2px solid #30363d; 
         margin: 20px 0;
-        text-align: left;
     }
     .math-line { 
         font-family: 'Consolas', monospace;
         color: #ffcc00;
-        font-size: 1.2rem;
-        margin-bottom: 10px;
+        font-size: 1.25rem;
+        margin-bottom: 12px;
         display: block;
         direction: ltr;
+        text-align: left;
     }
-    .math-label { color: #58a6ff; font-weight: bold; margin-right: 15px; direction: rtl; display: inline-block; }
+    .math-label { color: #58a6ff; font-weight: bold; margin-right: 15px; direction: rtl; display: inline-block; min-width: 120px; }
     
-    /* تصميم شريط الارتكاز المرتب */
-    .pivot-container {
-        background-color: #1f2937;
-        border-radius: 10px;
-        border-right: 5px solid #ffcc00;
-        padding: 15px;
-        margin: 15px 0;
+    /* تصميم شريط الارتكاز (Pivot Bar) المحسن */
+    .pivot-section {
+        background-color: #1c2128;
+        border-radius: 12px;
+        border-right: 6px solid #ffcc00;
+        padding: 20px;
+        margin: 20px 0;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
-    .pivot-item { text-align: center; border-left: 1px solid #30363d; }
     
-    .stTable { width: 100%; border: 1px solid #30363d !important; }
+    .stTable { width: 100%; border: 1px solid #30363d !important; border-radius: 10px !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -55,12 +55,12 @@ col_s1, col_s2 = st.columns(2)
 with col_s1:
     n_vars = st.selectbox("عدد المتغيرات الأصلية (X):", [2, 3, 4], index=0)
 with col_s2:
-    n_const = st.selectbox("عدد القيود:", [2, 3, 4], index=0)
+    n_const = st.selectbox("عدد القيود المتاحة:", [2, 3, 4], index=0)
 
 st.divider()
 
-# --- 3. مدخلات دالة الهدف والقيود ---
-c_obj, c_const = st.columns([1, 1.3], gap="medium")
+# --- 3. مدخلات دالة الهدف والقيود (أرقام صحيحة صافية) ---
+c_obj, c_const = st.columns([1, 1.3], gap="large")
 
 with c_obj:
     st.subheader("🎯 دالة الهدف (Z)")
@@ -72,7 +72,7 @@ with c_obj:
             obj_coeffs.append(float(val))
 
 with c_const:
-    st.subheader("⛓️ القيود (≤)")
+    st.subheader("⛓️ القيود الهيكلية (≤)")
     constraints_matrix = []
     rhs_values = []
     for i in range(n_const):
@@ -88,7 +88,7 @@ with c_const:
         constraints_matrix.append(row)
 
 if st.button("🚀 بدأ التحليل الرياضي الشامل", use_container_width=True):
-    # --- الصيغة القياسية ---
+    # --- الصيغة القياسية النهائية ---
     st.subheader("1️⃣ الصيغة القياسية النهائية (Standard Form)")
     s_vars = [f"S{i+1}" for i in range(n_const)]
     col_names = [f"X{i+1}" for i in range(n_vars)] + s_vars
@@ -96,16 +96,18 @@ if st.button("🚀 بدأ التحليل الرياضي الشامل", use_conta
     
     obj_final_text = " + ".join([f"{int(cj_full[idx])}{col_names[idx]}" for idx in range(len(col_names))])
     
-    html_content = "<div class='final-equation-box'>"
-    html_content += f"<div class='math-line'><span class='math-label'>دالة الهدف:</span> Max Z = {obj_final_text}</div><br>"
-    html_content += "<span class='math-label' style='display:block; margin-bottom:10px;'>القيود المحولة:</span>"
+    html_content = "<div class='standard-form-box'>"
+    html_content += f"<div class='math-line'><span class='math-label'>دالة الهدف:</span> Max Z = {obj_final_text}</div>"
+    html_content += "<hr style='border-color: #30363d; margin: 15px 0;'>"
+    html_content += "<span class='math-label' style='display:block; margin-bottom:12px;'>القيود المحولة:</span>"
     for i in range(n_const):
         eq_text = " + ".join([f"{int(constraints_matrix[i][j])}X{j+1}" for j in range(n_vars)])
         eq_text += f" + 1{s_vars[i]} = {int(rhs_values[i])}"
-        html_content += f"<div class='math-line' style='margin-left:20px;'>المعادلة {i+1} : {eq_text}</div>"
+        html_content += f"<div class='math-line' style='padding-left:40px;'>المعادلة {i+1} : {eq_text}</div>"
     html_content += "</div>"
     st.markdown(html_content, unsafe_allow_html=True)
 
+    # --- تهيئة المصفوفة والحل ---
     matrix = np.hstack([constraints_matrix, np.eye(n_const)])
     xb = np.array(rhs_values, dtype=float)
     basis = [f"S{i+1}" for i in range(n_const)]
@@ -117,7 +119,7 @@ if st.button("🚀 بدأ التحليل الرياضي الشامل", use_conta
         deltas = zj - cj_full
         current_z = np.dot(cb, xb)
 
-        # عرض Cj فوق المتغيرات
+        # عرض صف Cj فوق المتغيرات (جدول مستقل)
         cj_display = pd.DataFrame([cj_full.astype(int)], columns=col_names, index=["Cj"])
         st.write("**معاملات Cj:**")
         st.table(cj_display)
@@ -133,7 +135,7 @@ if st.button("🚀 بدأ التحليل الرياضي الشامل", use_conta
         df_main = pd.DataFrame(main_table_data, columns=["Basis", "CB", "XB"] + col_names + ["Ratio"])
         st.table(df_main)
 
-        # صفوف Zj و Zj-Cj
+        # صفوف Zj و Zj-Cj الأفقية تحت الجدول
         footer_data = [
             ["Zj", "", f"{current_z:.2f}"] + [f"{val:.2f}" for val in zj] + [""],
             ["Zj - Cj", "", ""] + [f"{val:.2f}" for val in deltas] + [""]
@@ -145,15 +147,15 @@ if st.button("🚀 بدأ التحليل الرياضي الشامل", use_conta
             st.success(f"🏁 تم الوصول للحل الأمثل: Z = {current_z:.2f}")
             break
             
-        # --- ترتيب معلومات الارتكاز (الذي طلبته) ---
+        # --- شريط الارتكاز المنسق والمعدل (Pivot Bar) ---
         p_row_idx = np.argmin([xb[i]/matrix[i, p_col_idx] if matrix[i, p_col_idx] > 0 else np.inf for i in range(n_const)])
         
-        st.markdown("<div class='pivot-container'>", unsafe_allow_html=True)
-        pv_col1, pv_col2, pv_col3, pv_col4 = st.columns([1, 1.5, 1.5, 1.5])
-        with pv_col1: st.markdown("🎯 **الارتكاز**")
-        with pv_col2: st.warning(f"{matrix[p_row_idx, p_col_idx]:.2f}")
-        with pv_col3: st.markdown(f"📥 **الداخل:** {col_names[p_col_idx]}")
-        with pv_col4: st.markdown(f"📤 **الخارج:** {basis[p_row_idx]}")
+        st.markdown("<div class='pivot-section'>", unsafe_allow_html=True)
+        pv_col1, pv_col2, pv_col3, pv_col4 = st.columns([1, 1, 1, 1])
+        with pv_col1: st.markdown("🎯 **عنصر الارتكاز**")
+        with pv_col2: st.markdown(f"<h3 style='color:#ffcc00; margin:0;'>{matrix[p_row_idx, p_col_idx]:.2f}</h3>", unsafe_allow_html=True)
+        with pv_col3: st.markdown(f"📥 **المتغير الداخل:** `{col_names[p_col_idx]}`")
+        with pv_col4: st.markdown(f"📤 **المتغير الخارج:** `{basis[p_row_idx]}`")
         st.markdown("</div>", unsafe_allow_html=True)
         st.divider()
 
