@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 
-# --- 1. إعدادات الصفحة والتصميم الاحترافي ---
+# --- 1. إعدادات الصفحة والتنسيق الاحترافي ---
 st.set_page_config(page_title="Simplex Solver Pro", layout="wide")
 
 st.markdown("""
@@ -15,33 +15,45 @@ st.markdown("""
     input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     input[type=number] { -moz-appearance: textfield; text-align: center; font-size: 18px !important; }
 
-    /* تنسيق صندوق المتغيرات (مطابق للصورة) */
+    /* تنسيق الكروت (مطابق للصورة) */
     .variable-card {
         background-color: #161b22;
-        padding: 10px 20px;
+        padding: 8px 15px;
         border-radius: 8px;
-        display: inline-flex;
+        display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
         border: 1px solid #30363d;
+        justify-content: center;
+        min-width: 180px;
     }
     .var-tag {
         background-color: #21262d;
         color: #58a6ff;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-family: monospace;
+        padding: 2px 10px;
+        border-radius: 5px;
+        font-family: 'Consolas', monospace;
         font-weight: bold;
+        font-size: 1.1rem;
     }
-    .in-icon { color: #3fb950; font-size: 1.2rem; } /* أخضر للداخل */
-    .out-icon { color: #f85149; font-size: 1.2rem; } /* أحمر للخارج */
+    .pivot-value-tag {
+        background-color: #21262d;
+        color: #3fb950;
+        padding: 4px 12px;
+        border-radius: 6px;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    .icon-box { font-size: 1.3rem; }
 
-    /* شريط الارتكاز */
-    .pivot-section {
-        background-color: #0d1117;
-        padding: 20px;
-        text-align: center;
+    /* حاوية الشريط بالكامل */
+    .pivot-bar-container {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        padding: 20px 0;
         margin: 20px 0;
+        background-color: #0d1117;
     }
 
     .stTable { width: 100%; border: 1px solid #30363d !important; }
@@ -88,12 +100,10 @@ with c_const:
         constraints_matrix.append(row)
 
 if st.button("🚀 بدأ التحليل الرياضي الشامل", use_container_width=True):
-    # --- الصيغة القياسية ---
     s_vars = [f"S{i+1}" for i in range(n_const)]
     col_names = [f"X{i+1}" for i in range(n_vars)] + s_vars
     cj_full = np.concatenate([obj_coeffs, [0.0]*n_const])
     
-    # --- تهيئة المصفوفة والحل ---
     matrix = np.hstack([constraints_matrix, np.eye(n_const)])
     xb = np.array(rhs_values, dtype=float)
     basis = [f"S{i+1}" for i in range(n_const)]
@@ -105,60 +115,49 @@ if st.button("🚀 بدأ التحليل الرياضي الشامل", use_conta
         deltas = zj - cj_full
         current_z = np.dot(cb, xb)
 
-        # عرض Cj فوق المتغيرات
-        cj_display = pd.DataFrame([cj_full.astype(int)], columns=col_names, index=["Cj"])
-        st.table(cj_display)
-
-        # جدول البيانات الرئيسي
+        # عرض الجداول
+        st.table(pd.DataFrame([cj_full.astype(int)], columns=col_names, index=["Cj"]))
+        
         main_table_data = []
         p_col_idx = np.argmin(deltas)
         for i in range(n_const):
             ratio = xb[i] / matrix[i, p_col_idx] if matrix[i, p_col_idx] > 0 else np.inf
-            row = [basis[i], int(cb[i]), f"{xb[i]:.2f}"] + [f"{matrix[i][j]:.2f}" for j in range(len(col_names))] + [f"{ratio:.2f}" if ratio != np.inf else "-"]
-            main_table_data.append(row)
+            main_table_data.append([basis[i], int(cb[i]), f"{xb[i]:.2f}"] + [f"{matrix[i][j]:.2f}" for j in range(len(col_names))] + [f"{ratio:.2f}" if ratio != np.inf else "-"])
         
-        df_main = pd.DataFrame(main_table_data, columns=["Basis", "CB", "XB"] + col_names + ["Ratio"])
-        st.table(df_main)
+        st.table(pd.DataFrame(main_table_data, columns=["Basis", "CB", "XB"] + col_names + ["Ratio"]))
 
-        # صفوف Zj و Zj-Cj
-        footer_data = [
+        footer_df = pd.DataFrame([
             ["Zj", "", f"{current_z:.2f}"] + [f"{val:.2f}" for val in zj] + [""],
             ["Zj - Cj", "", ""] + [f"{val:.2f}" for val in deltas] + [""]
-        ]
-        df_footer = pd.DataFrame(footer_data, columns=["Basis", "CB", "XB"] + col_names + ["Ratio"])
-        st.table(df_footer)
+        ], columns=["Basis", "CB", "XB"] + col_names + ["Ratio"])
+        st.table(footer_df)
 
         if np.all(deltas >= -1e-9):
-            st.success(f"🏁 تم الوصول للحل الأمثل: Z = {current_z:.2f}")
+            st.success(f"🏁 الحل الأمثل: Z = {current_z:.2f}")
             break
             
-        # --- الترتيب الجديد للمتغيرات (مطابق للصورة تماماً) ---
+        # --- شريط الارتكاز المنسق (مطابق للصورة) ---
         p_row_idx = np.argmin([xb[i]/matrix[i, p_col_idx] if matrix[i, p_col_idx] > 0 else np.inf for i in range(n_const)])
         
-        st.markdown("<div class='pivot-section'>", unsafe_allow_html=True)
-        v_col1, v_col2, v_col3 = st.columns([1, 1, 1])
-        
-        with v_col1:
-            st.markdown(f"""
-                <div class='variable-card'>
-                    <span class='in-icon'>📥</span>
+        st.markdown(f"""
+            <div class="pivot-bar-container">
+                <div class="variable-card">
+                    <span class="icon-box">📥</span>
                     <span>المتغير الداخل:</span>
-                    <span class='var-tag'>{col_names[p_col_idx]}</span>
+                    <span class="var-tag">{col_names[p_col_idx]}</span>
                 </div>
-            """, unsafe_allow_html=True)
-            
-        with v_col2:
-            st.markdown(f"🎯 **عنصر الارتكاز:** `{matrix[p_row_idx, p_col_idx]:.2f}`")
-
-        with v_col3:
-            st.markdown(f"""
-                <div class='variable-card'>
-                    <span class='out-icon'>📤</span>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.3rem;">🎯</span>
+                    <span>عنصر الارتكاز:</span>
+                    <span class="pivot-value-tag">{matrix[p_row_idx, p_col_idx]:.2f}</span>
+                </div>
+                <div class="variable-card">
+                    <span class="icon-box">📤</span>
                     <span>المتغير الخارج:</span>
-                    <span class='var-tag'>{basis[p_row_idx]}</span>
+                    <span class="var-tag">{basis[p_row_idx]}</span>
                 </div>
-            """, unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+            </div>
+        """, unsafe_allow_html=True)
         st.divider()
 
         # تحديث المصفوفة
@@ -170,6 +169,5 @@ if st.button("🚀 بدأ التحليل الرياضي الشامل", use_conta
                 factor = matrix[i, p_col_idx]
                 matrix[i] -= factor * matrix[p_row_idx]
                 xb[i] -= factor * xb[p_row_idx]
-        
         basis[p_row_idx] = col_names[p_col_idx]
         cb[p_row_idx] = cj_full[p_col_idx]
