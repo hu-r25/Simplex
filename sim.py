@@ -141,7 +141,7 @@ if st.button("🚀 بدأ الحل", use_container_width=True):
         # العمليات الحسابية التفصيلية (الضرب والجمع والطرح)
         calc_html = "<div class='calc-container'>"
         calc_html += f"<span class='step-title'>📝 تفصيل حسابات الجدول {it}:</span>"
-        calc_html += "<b>• أولاً: حساب Zj (ضرب CB في كل عمود):</b><br>"
+        calc_html += "<b>• أولاً: حساب Z (ضرب CB في كل عمود):</b><br>"
         for j in range(len(col_names)):
             parts = [f"({fmt(cb[k])}×{fmt(matrix[k,j])})" for k in range(n_const)]
             calc_html += f"<div class='math-row'>Zj({col_names[j]}) = {' + '.join(parts)} = <span class='math-res'>{fmt(zj[j])}</span></div>"
