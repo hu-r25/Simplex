@@ -8,7 +8,7 @@ st.set_page_config(page_title="Simplex Coach Pro", layout="wide")
 st.markdown("""
     <style>
     .stApp { background-color: #0d1117; color: #e6edf3; font-family: 'Segoe UI', sans-serif; }
-    .main-header { font-size: calc(1.3rem + 1vw); color: #58a6ff; font-weight: bold; text-align: center; margin-bottom: 20px; border-bottom: 2px solid #30363d; padding-bottom: 10px; }
+    .main-header { font-size: calc(1.3rem + 1vw); color: #58a6ff; font-weight: bold; text-align: center; margin: 20px 0; border-bottom: 2px solid #30363d; padding-bottom: 10px; }
     
     input[type=number] { 
         text-align: center !important; 
@@ -29,7 +29,7 @@ st.markdown("""
     }
     .math-row { color: #d29922; direction: ltr; text-align: left; font-size: 0.95rem; margin-bottom: 8px; white-space: nowrap; }
     .math-res { color: #3fb950; font-weight: bold; }
-    .step-title { color: #58a6ff; font-weight: bold; margin-bottom: 10px; display: block; border-bottom: 1px solid #30363d; }
+    .step-title { color: #58a6ff; font-weight: bold; margin-bottom: 10px; display: block; border-bottom: 1px solid #30363d; padding-bottom: 5px; }
 
     .pivot-bar { 
         background-color: #161b22; border: 1px solid #f1c40f; padding: 12px; border-radius: 10px; 
@@ -48,30 +48,27 @@ def fmt(num):
     if abs(num - round(num)) < 1e-9: return str(int(round(num)))
     return f"{num:.2f}".rstrip('0').rstrip('.')
 
-st.markdown("<div class='main-header'>📈 محلل السمبلكس التعليمي (Max/Min)</div>", unsafe_allow_html=True)
+st.markdown("<div class='main-header'>📈 محلل السمبلكس (تحويل Min إلى Max)</div>", unsafe_allow_html=True)
 
 # --- 2. مدخلات المسألة ---
 with st.expander("⚙️ إعدادات المسألة", expanded=True):
     c0, c1, c2 = st.columns([1, 1, 1])
-    opt_type = c0.selectbox("نوع الهدف:", ["Maximize", "Minimize"])
+    opt_type = c0.selectbox("نوع الهدف الأصلي:", ["Maximize", "Minimize"])
     n_vars = c1.selectbox("عدد متغيرات X:", [2, 3, 4], index=1)
     n_const = c2.selectbox("عدد القيود:", [2, 3, 4], index=1)
 
 st.divider()
 
-# مدخلات دالة الهدف
-st.subheader(f"🎯 دالة الهدف ({opt_type} Z)")
+st.subheader(f"🎯 دالة الهدف الأصلي ({opt_type} Z)")
 obj_coeffs = []
 cols_obj = st.columns(n_vars)
 for i in range(n_vars):
     val = cols_obj[i].number_input(f"X{i+1}", value=0.0, step=1.0, format="%g", key=f"obj_{i}")
     obj_coeffs.append(val)
 
-# مدخلات القيود
 st.subheader("⛓️ مصفوفة القيود")
 constraints_matrix = []
 rhs_values = []
-
 for i in range(n_const):
     st.markdown(f"**📍 القيد رقم {i+1}**")
     cols_row = st.columns(list(np.ones(n_vars)) + [0.4] + [1.0])
@@ -88,38 +85,52 @@ for i in range(n_const):
 if st.button("🚀 بدأ التحليل الحسابي الكامل", use_container_width=True):
     s_vars = [f"S{i+1}" for i in range(n_const)]
     col_names = [f"X{i+1}" for i in range(n_vars)] + s_vars
+    
+    # تحويل المشكلة (إذا كانت Min نضرب في -1 لتصبح Max)
+    is_min = (opt_type == "Minimize")
     cj_original = np.array(obj_coeffs + [0.0]*n_const)
+    cj_working = cj_original * (-1) if is_min else cj_original.copy()
+
+    # --- عرض تحويل القيود (Standard Form) ---
+    st.markdown("### 1️⃣ المرحلة التمهيدية: الصيغة القياسية")
+    standard_html = "<div class='calc-container'>"
+    if is_min:
+        standard_html += "<span style='color:#f1c40f;'>💡 بما أن الهدف Minimize، قمنا بضرب المعاملات في (-1) للتحويل إلى Maximize.</span><br>"
     
-    # تحويل المشكلة لـ Maximize إذا كانت Minimize
-    cj_working = cj_original.copy()
+    standard_html += "<span class='step-title'>تحويل القيود (إضافة Slack Variables):</span>"
+    for i in range(n_const):
+        eq = " + ".join([f"{fmt(constraints_matrix[i][j])}X{j+1}" for j in range(n_vars)]) + f" + 1{s_vars[i]} = {fmt(rhs_values[i])}"
+        standard_html += f"<p class='math-row'>C{i+1}: {eq}</p>"
     
+    obj_display = " + ".join([f"({fmt(cj_working[idx])}){col_names[idx]}" for idx in range(len(col_names))])
+    standard_html += f"<br><span class='step-title'>دالة الهدف للعمل (Max Z'):</span>"
+    standard_html += f"<p class='math-row'>Z' = {obj_display}</p>"
+    standard_html += "</div>"
+    st.markdown(standard_html, unsafe_allow_html=True)
+
+    # تهيئة البيانات
     matrix = np.hstack([constraints_matrix, np.eye(n_const)])
     xb = np.array(rhs_values, dtype=float)
     basis = [f"S{i+1}" for i in range(n_const)]
     cb = np.zeros(n_const)
 
-    for it in range(1, 10):
+    for it in range(1, 11):
         st.markdown(f"#### 📍 جدول المرحلة {it}")
         zj = np.array([np.dot(cb, matrix[:, j]) for j in range(len(cj_working))])
         deltas = zj - cj_working
         current_z = np.dot(cb, xb)
 
-        # عرض جدول Cj
         st.table(pd.DataFrame([[fmt(x) for x in cj_working]], columns=col_names, index=["Cj"]))
         
-        # اختيار المتغير الداخل بناءً على نوع الهدف
-        if opt_type == "Maximize":
-            p_col_idx = np.argmin(deltas)
-            is_optimal = np.all(deltas >= -1e-9)
-        else: # Minimize
-            p_col_idx = np.argmax(deltas)
-            is_optimal = np.all(deltas <= 1e-9)
+        # دائماً نبحث عن أصغر قيمة سالبة لأننا وحدنا المسألة لتكون Max
+        is_optimal = np.all(deltas >= -1e-9)
+        p_col_idx = np.argmin(deltas)
 
         table_rows = []
         for i in range(n_const):
-            ratio = xb[i] / matrix[i, p_col_idx] if matrix[i, p_col_idx] > 1e-9 else np.inf
-            row_data = [basis[i], fmt(cb[i]), fmt(xb[i])] + [fmt(matrix[i][j]) for j in range(len(col_names))] + [fmt(ratio) if ratio != np.inf else "-"]
-            table_rows.append(row_data)
+            val_in_p = matrix[i, p_col_idx]
+            ratio = xb[i] / val_in_p if val_in_p > 1e-9 else np.inf
+            table_rows.append([basis[i], fmt(cb[i]), fmt(xb[i])] + [fmt(matrix[i][j]) for j in range(len(col_names))] + [fmt(ratio) if ratio != np.inf else "-"] )
         
         table_rows.append(["Zj", "", fmt(current_z)] + [fmt(val) for val in zj] + ["-"])
         table_rows.append(["Δj", "", ""] + [fmt(val) for val in deltas] + ["-"])
@@ -128,30 +139,23 @@ if st.button("🚀 بدأ التحليل الحسابي الكامل", use_conta
         # --- الحسابات التفصيلية ---
         calc_html = "<div class='calc-container'>"
         calc_html += f"<span class='step-title'>📝 تفصيل عمليات الجدول {it}:</span>"
-        
-        calc_html += "<b>1. حساب Zj (ضرب CB في الأعمدة):</b><br>"
+        calc_html += "<b>1. حساب Zj (CB × العمود):</b><br>"
         for j in range(len(col_names)):
             parts = [f"({fmt(cb[k])}×{fmt(matrix[k,j])})" for k in range(n_const)]
             calc_html += f"<div class='math-row'>Zj({col_names[j]}) = {' + '.join(parts)} = <span class='math-res'>{fmt(zj[j])}</span></div>"
         
         calc_html += "<br><b>2. حساب الدلتا (Zj - Cj):</b><br>"
         for j in range(len(col_names)):
-            calc_html += f"<div class='math-row'>Δ({col_names[j]}) = {fmt(zj[j])}(Zj) - {fmt(cj_working[j])}(Cj) = <span class='math-res'>{fmt(deltas[j])}</span></div>"
-        
+            calc_html += f"<div class='math-row'>Δ({col_names[j]}) = {fmt(zj[j])} - ({fmt(cj_working[j])}) = <span class='math-res'>{fmt(deltas[j])}</span></div>"
         calc_html += "</div>"
         st.markdown(calc_html, unsafe_allow_html=True)
 
         if is_optimal:
-            st.success(f"🏁 تم الوصول للحل الأمثل: Z = {fmt(current_z)}")
+            final_z = -current_z if is_min else current_z
+            st.success(f"🏁 تم الوصول للحل الأمثل! القيمة النهائية للهدف الأصلي Z = {fmt(final_z)}")
             break
             
-        # اختيار المتغير الخارج
-        ratios = [xb[i]/matrix[i, p_col_idx] if matrix[i, p_col_idx] > 1e-9 else np.inf for i in range(n_const)]
-        if np.all(np.array(ratios) == np.inf):
-            st.error("المشكلة غير محدودة (Unbounded Solution)")
-            break
-            
-        p_row_idx = np.argmin(ratios)
+        p_row_idx = np.argmin([xb[i]/matrix[i, p_col_idx] if matrix[i, p_col_idx] > 1e-9 else np.inf for i in range(n_const)])
         
         st.markdown(f"""
             <div class='pivot-bar'>
